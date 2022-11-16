@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-Generate server certificates in certs folder for `fuf.me` server using mkcert, this domain will point to  127.0.0.1
+Generate server certificates in certs folder for `test` server using mkcert, this domain will point to  127.0.0.1
 
 ```sh
 $> chmod +x k3d-cluster
@@ -33,7 +33,7 @@ All passwords and info needed will be displayed in terminal.
 ```sh
 $> ./k3d-cluster 
 Cluster Name [k3d-cluster]: 
-Cluster Domain [fuf.me]: 
+Cluster Domain [test]: 
 API Port [6443]: 
 Servers (Masters) [1]: 
 Agents (Workers) [1]: 2
@@ -505,13 +505,13 @@ Create a signed certificate for your cluster
 
 ```sh
 $> cd certs
-$> mkcert fuf.me "*.fuf.me" fuf.me
+$> mkcert test "*.test" test
 ```
 
 Create a signed certificate for multiple domains
 
 ```sh
-$> mkcert fuf.me "*.fuf.me" fuf.me "*.vcap.me" vcap.me \
+$> mkcert test "*.test" test "*.vcap.me" vcap.me \
 "*.localtest.me" localtest.me "*.yoogle.com" yoogle.com \
 "*.lvh.me" lvh.me "*.bret.lol" bret.lol
 ```
@@ -671,7 +671,7 @@ metadata:
     ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   rules:
-    - host: grafana.fuf.me
+    - host: grafana.test
       http:
         paths:
           - path: /

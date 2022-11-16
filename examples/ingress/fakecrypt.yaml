@@ -19,7 +19,7 @@ metadata:
     ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   rules:
-    - host: fakecrypt.fuf.me
+    - host: fakecrypt.test
       http:
         paths:
           - path: /

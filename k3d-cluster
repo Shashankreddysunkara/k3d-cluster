@@ -1,18 +1,18 @@
 #!/bin/sh
 
 # Instalation variables
-CLUSTER_DOMAIN=fuf.me
+CLUSTER_DOMAIN=test
 API_PORT=6443
 HTTP_PORT=80
 HTTPS_PORT=443
-CLUSTER_NAME=k3d-cluster
+CLUSTER_NAME=cluster1
 READ_VALUE=
-SERVERS=1
-AGENTS=1
+SERVERS=3
+AGENTS=5
 TRAEFIK_V2=Yes
 INSTALL_INGRESS=Yes
-INSTALL_DASHBOARD=No
-INSTALL_PROMETHEUS=No
+INSTALL_DASHBOARD=Yes
+INSTALL_PROMETHEUS=Yes
 
 # bold text 
 bold=$(tput bold)
@@ -120,80 +120,79 @@ installCluster ()
   header "Creating K3D cluster"
 #https://github.com/rancher/k3d/blob/main/tests/assets/config_test_simple.yaml
   cat <<EOF  > tmp-k3d-${CLUSTER_NAME}.yaml
-apiVersion: k3d.io/v1alpha2
+apiVersion: k3d.io/v1alpha4
 kind: Simple
-name: ${CLUSTER_NAME}
+metadata:
+  name: ${CLUSTER_NAME}
 servers: ${SERVERS} 
 agents: ${AGENTS}
 kubeAPI:
-  hostIP: "0.0.0.0"
-  hostPort: "${API_PORT}" # kubernetes api port 6443:6443
-
-image: rancher/k3s:latest
-#image: rancher/k3s:v1.19.4-k3s1
-
+  host: "k3d"
+  hostIP: "127.0.0.1"
+  hostPort: "${API_PORT}"
+image: rancher/k3s:v1.25.3-k3s1
 volumes:
-#  - volume: $(pwd)/k3deploy/helm-ingress-ngnx.yaml:/var/lib/rancher/k3s/server/manifests/helm-ingress-nginx.yaml
-  - volume: $(pwd)/k3dvol:/k3dvol # volume in host:container
+  - volume: $(pwd)/k3dvol:/k3dvol
     nodeFilters:
       - all
-
 ports:
-  - port: ${HTTP_PORT}:80 # http port host:container
+  - port: ${HTTP_PORT}:80
     nodeFilters:
       - loadbalancer
-  - port: 0.0.0.0:${HTTPS_PORT}:443 # https port host:container
+  - port: 127.0.0.1:${HTTPS_PORT}:443 
     nodeFilters:
       - loadbalancer
-
 env:
   - envVar: secret=token
     nodeFilters:
       - all
-labels:
-  - label: best_cluster=forced_tag
-    nodeFilters:
-      - server[0] # 
-      - loadbalancer
-
-#registries:
-#  create: true
-#  use: []
-#  config: |
-#    mirrors:
-#      "my.company.registry":
-#        endpoint:
-#          - http://my.company.registry:5000
+registries: 
+  create: 
+    name: kubeapi.k3d.test
+    host:  kubeapi.k3d.test #"192.168.5.74"
+    hostPort: "5000"
+    volumes:
+      - /Users/shashanksunakra/k3d/volume/registry:/var/lib/registry@all
+  config: |
+    mirrors:
+      "kubeapi.k3d.test":
+        endpoint:
+          - http://kubeapi.k3d.test:5000
+    configs:
+      kubeapi.k3d.test:
+        auth:
+          username: registry
+          password: registry
 
 options:
   k3d:
     wait: true
-    timeout: "60s" # avoid an start/stop cicle when start fails
+    timeout: "60s" 
     disableLoadbalancer: false
     disableImageVolume: false
-  k3s:
-    extraServerArgs:
-      - --tls-san=127.0.0.1
-      - --no-deploy=traefik
-#      - --flannel-backend=none
-
-    extraAgentArgs: []
+    disableRollback: false
+    loadbalancer:
+      configOverrides:
+        - settings.workerConnections=2048
+  k3s: 
+    extraArgs: 
+      - arg: \--tls-san=10.118.0.0/17
+        nodeFilters:
+          - server:*
+      - arg: \--tls-san=10.118.128.0/17
+        nodeFilters:
+          - agent:*
+    nodeLabels:
+      - label: parent=k3d 
+        nodeFilters:
+          - server:*
+          - agent:*
   kubeconfig:
-    updateDefaultKubeconfig: true # update kubeconfig when cluster starts
-    switchCurrentContext: true # change this cluster context when cluster starts
+    updateDefaultKubeconfig: true
+    switchCurrentContext: true 
 EOF
 
   k3d cluster create --config tmp-k3d-${CLUSTER_NAME}.yaml
-
- #   k3d cluster create ${CLUSTER_NAME} \
- #   --api-port ${API_PORT} \
- #   --port ${HTTPS_PORT}:443@loadbalancer  \
- #   --port ${HTTP_PORT}:80@loadbalancer \
- #   --volume $(pwd)/k3dvol:/tmp/k3dvol \
- #   --servers ${SERVERS} \
- #   --agents ${AGENTS} \
- #   --volume "$(pwd)/deployments/helm-ingress-nginx.yaml:/var/lib/rancher/k3s/server/manifests/helm-ingress-nginx.yaml" \
- #   --k3s-server-arg '--no-deploy=traefik' 
 
   header "waiting for cluster init ..."
   sleep 5    
@@ -213,7 +212,7 @@ metadata:
 spec:
   storageClassName: manual
   capacity:
-    storage: 50Gi
+    storage: 20Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
@@ -229,7 +228,7 @@ installIngress ()
   # Create Namespace
   kubectl create namespace ingress
   # Create a secret with server certificate
-  kubectl --namespace ingress create secret tls nginx-server-certs --key certs/fuf.me-key.pem --cert certs/fuf.me.pem
+  kubectl --namespace ingress create secret tls nginx-server-certs --key certs/test-key.pem --cert certs/test.pem
   # Install ingress with tls enabled providing certificates stored in namespace
   cat <<EOF | helm install --namespace ingress -f - ingress bitnami/nginx-ingress-controller
 extraArgs:
@@ -248,7 +247,7 @@ installDashboard ()
 {
   header "Instaling Dashboard"
   # Install Kubernetes Dashboard
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0/aio/deploy/recommended.yaml
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
   # Create dashboard account
   kubectl create serviceaccount dashboard-admin-sa
   # bind the dashboard-admin-service-account service account to the cluster-admin role
@@ -268,7 +267,7 @@ installDashboard ()
   kubectl describe secret $(kubectl get secrets | grep dashboard-admin-sa | awk '{ print $1 }')
   header "Dashboard Access:"
   echo "kubectl proxy"
-  echo "http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login"
+  echo "http://kubernetesdashboard.test:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login"
   footer
 }
 

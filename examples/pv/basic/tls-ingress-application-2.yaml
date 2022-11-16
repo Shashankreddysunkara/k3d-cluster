@@ -7,10 +7,10 @@ metadata:
 spec:
   tls:
     - hosts:
-      - "pv2.fuf.me"
+      - "pv2.test"
     - secretName: nginx-server-certs    
   rules:
-    - host: "pv2.fuf.me"
+    - host: "pv2.test"
       http:
         paths:
           - path: /

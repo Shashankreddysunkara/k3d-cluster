@@ -6,7 +6,7 @@ metadata:
     ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   rules:
-    - host: resters.fuf.me
+    - host: resters.test
       http:
         paths:
           - path: /

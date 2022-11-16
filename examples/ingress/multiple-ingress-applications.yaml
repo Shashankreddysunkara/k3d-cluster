@@ -6,7 +6,7 @@ metadata:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
   rules:
-  - host: "nginx.fuf.me"
+  - host: "nginx.test"
     http:
       paths:
       - pathType: Prefix
@@ -16,7 +16,7 @@ spec:
             name: nginx
             port:
               number: 80
-  - host: "whoami.fuf.me"
+  - host: "whoami.test"
     http:
       paths:
       - pathType: Prefix

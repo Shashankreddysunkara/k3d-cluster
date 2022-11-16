@@ -6,7 +6,7 @@ metadata:
     ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   rules:
-    - host: fakecrypt.fuf.me
+    - host: fakecrypt.test
       http:
         paths:
           - path: /
@@ -16,7 +16,7 @@ spec:
                 name: server-pv-1-service
                 port:
                   number: 80
-    - host: nada.fuf.me
+    - host: nada.test
       http:
         paths:
           - path: /

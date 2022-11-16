@@ -29,10 +29,10 @@ $> kubectl create namespace ingress
 ```
 
 Create a namespace for ingress and create a secret with default server certificate
-I use [mkcert](https://github.com/FiloSottile/mkcert) to generate this signed certificates and install CA root in my computer. In this case the certificate matches `*.fuf.me` domains. See mkcert doc for more info.
+I use [mkcert](https://github.com/FiloSottile/mkcert) to generate this signed certificates and install CA root in my computer. In this case the certificate matches `*.test` domains. See mkcert doc for more info.
 
 ```sh
-$> kubectl --namespace ingress create secret tls nginx-server-certs --key fuf.me-key.pem --cert fuf.me.pem
+$> kubectl --namespace ingress create secret tls nginx-server-certs --key test-key.pem --cert test.pem
 ```
 
 Create a file to override default values in helm
@@ -59,7 +59,7 @@ metadata:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
   rules:
-  - host: "nginx.fuf.me"
+  - host: "nginx.test"
     http:
       paths:
       - pathType: Prefix
@@ -114,14 +114,14 @@ spec:
 
 ### Generating certificates on the fly
 ```sh
-$> openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=fuf.me' -keyout ca.key -out ca.crt
-$> openssl req -out nginx.fuf.me.csr -newkey rsa:2048 -nodes -keyout nginx.fuf.me.key -subj "/CN=nginx.fuf.me/O=some organization"
-$> openssl x509 -req -days 365 -CA ca.crt -CAkey ca.key -set_serial 0 -in nginx.fuf.me.csr -out nginx.fuf.me.crt
+$> openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=test' -keyout ca.key -out ca.crt
+$> openssl req -out nginx.test.csr -newkey rsa:2048 -nodes -keyout nginx.test.key -subj "/CN=nginx.test/O=some organization"
+$> openssl x509 -req -days 365 -CA ca.crt -CAkey ca.key -set_serial 0 -in nginx.test.csr -out nginx.test.crt
 
-$> nginx.fuf.me.key > nginx.fuf.me.pem
-$> cat nginx.fuf.me.crt >> nginx.fuf.me.pem
-$> cat nginx.fuf.me.csr >> nginx.fuf.me.pem
-$> kubectl create secret tls nginx-server-certs --key nginx.fuf.me.key --cert nginx.fuf.me.pem
+$> nginx.test.key > nginx.test.pem
+$> cat nginx.test.crt >> nginx.test.pem
+$> cat nginx.test.csr >> nginx.test.pem
+$> kubectl create secret tls nginx-server-certs --key nginx.test.key --cert nginx.test.pem
 ```
 
 

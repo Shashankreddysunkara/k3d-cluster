@@ -7,10 +7,10 @@ metadata:
 spec:
   tls:
     - hosts:
-      - "whoami.fuf.me"
+      - "whoami.test"
     - secretName: nginx-server-certs    
   rules:
-    - host: "whoami.fuf.me"
+    - host: "whoami.test"
       http:
         paths:
           - path: /
